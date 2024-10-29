@@ -18,7 +18,7 @@ app.get('/user', async (req,res) => {
         {name: 'Rakib', age: 21}
     ]
 
-    res.send(user)
+    res.send(user[0])
 })
 
 
