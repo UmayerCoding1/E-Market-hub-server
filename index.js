@@ -12,14 +12,7 @@ app.get('/', (req,res) => {
     res.send('EMarket Hub server is ready');
 });
 
-app.get('/user', async (req,res) => {
-    const user = [
-        {name: 'Umayer Hossain ', age: 13 },
-        {name: 'Rakib', age: 21}
-    ]
 
-    res.send(user)
-})
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_Pass}@cluster0.34gmw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
