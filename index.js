@@ -29,6 +29,17 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
+
+    const categoryCollection = client.db('eMarketHubDb').collection('categories');
+    
+
+
+    // get categories 
+    app.get('/categories', async(req,res) => {
+      const result = await categoryCollection.find().toArray();
+      res.send(result);
+    })
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
