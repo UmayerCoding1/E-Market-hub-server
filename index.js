@@ -12,7 +12,7 @@ app.get("/", (req, res) => {
   res.send("EMarket Hub server is ready");
 });
 
-app.get('user', (req,res) => {
+app.get('/user', (req,res) => {
   res.send({
     name: 'umayer'
   })
