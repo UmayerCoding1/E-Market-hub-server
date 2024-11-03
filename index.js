@@ -31,12 +31,18 @@ async function run() {
     await client.connect();
 
     const categoryCollection = client.db('eMarketHubDb').collection('categories');
-    
+    const bannerCollection = client.db('eMarketHubDb').collection('banners');
 
 
     // get categories 
     app.get('/categories', async(req,res) => {
       const result = await categoryCollection.find().toArray();
+      res.send(result);
+    });
+
+    // get banners
+    app.get('/banners', async(Req,res) => {
+      const result = await bannerCollection.find().toArray();
       res.send(result);
     })
 
