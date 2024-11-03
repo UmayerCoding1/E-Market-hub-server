@@ -47,7 +47,7 @@ async function run() {
       res.send(result);
     });
 
-    // get banners
+    // get daley
     app.get('/daley', async(req,res) => {
       const result = await daleyCollection.find().toArray();
       res.send(result);
