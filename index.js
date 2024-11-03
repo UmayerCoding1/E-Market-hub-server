@@ -42,20 +42,29 @@ async function run() {
         const result = await categoryCollection.find().toArray();
         res.send(result);
       } catch (error) {
-        req.status(500).send({ message: "Field to fetch" });
+        req.status(500).send({ message: "Field to fetch categories" });
       }
     });
 
     // get banners
     app.get("/banners", async (req, res) => {
-      const result = await bannerCollection.find().toArray();
-      res.send(result);
+      try{
+        const result = await bannerCollection.find().toArray();
+        res.send(result);
+      }catch(error){
+        res.status(500).send({message: 'Filed to fetch banners'});
+      }
     });
 
     // get daley
     app.get("/daley", async (req, res) => {
-      const result = await daleyCollection.find().toArray();
+      try{
+        const result = await daleyCollection.find().toArray();
       res.send(result);
+      }catch(error) {
+        res.status(500).send({message: 'Filed to fetch daley'})
+      }
+      
     });
 
 
