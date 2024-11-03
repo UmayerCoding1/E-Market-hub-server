@@ -32,6 +32,7 @@ async function run() {
 
     const categoryCollection = client.db('eMarketHubDb').collection('categories');
     const bannerCollection = client.db('eMarketHubDb').collection('banners');
+    const daleyCollection = client.db('eMarketHubDb').collection('daley');
 
 
     // get categories 
@@ -41,8 +42,14 @@ async function run() {
     });
 
     // get banners
-    app.get('/banners', async(Req,res) => {
+    app.get('/banners', async(req,res) => {
       const result = await bannerCollection.find().toArray();
+      res.send(result);
+    });
+
+    // get banners
+    app.get('/daley', async(req,res) => {
+      const result = await daleyCollection.find().toArray();
       res.send(result);
     })
 
