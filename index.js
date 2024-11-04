@@ -1,19 +1,19 @@
-const express = require("express");
-const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
-require("dotenv").config();
+const express = require('express');
+const cors = require('cors');
+const { MongoClient, ServerApiVersion } = require('mongodb');
+require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 8000;
 
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: ['http://localhost:5173'],
   })
 );
 app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("EMarket Hub server is ready");
+app.get('/', (req, res) => {
+  res.send('EMarket Hub server is ready');
 });
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ipmfa.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -33,68 +33,76 @@ async function run() {
     await client.connect();
 
     const categoryCollection = client
-      .db("eMarketHubDb")
-      .collection("categories");
-    const bannerCollection = client.db("eMarketHubDb").collection("banners");
-    const daleyCollection = client.db("eMarketHubDb").collection("daley");
-    const productsCollection = client.db("eMarketHubDb").collection("products");
-    const adsCollection = client.db("eMarketHubDb").collection("ads");
+      .db('eMarketHubDb')
+      .collection('categories');
+    const bannerCollection = client.db('eMarketHubDb').collection('banners');
+    const daleyCollection = client.db('eMarketHubDb').collection('daley');
+    const productsCollection = client.db('eMarketHubDb').collection('products');
+    const adsCollection = client.db('eMarketHubDb').collection('ads');
 
     // get categories
-    app.get("/categories", async (req, res) => {
+    app.get('/categories', async (req, res) => {
       try {
         const result = await categoryCollection.find().toArray();
         res.send(result);
       } catch (error) {
-        res.status(500).send({ message: "Failed to fetch categories" });
+        res.status(500).send({ message: 'Failed to fetch categories' });
       }
     });
 
     // get banners
-    app.get("/banners", async (req, res) => {
+    app.get('/banners', async (req, res) => {
       try {
         const result = await bannerCollection.find().toArray();
         res.send(result);
       } catch (error) {
-        res.status(500).send({ message: "Failed to fetch banners" });
+        res.status(500).send({ message: 'Failed to fetch banners' });
       }
     });
 
     // get daley
-    app.get("/daley", async (req, res) => {
+    app.get('/daley', async (req, res) => {
       try {
         const result = await daleyCollection.find().toArray();
         res.send(result);
       } catch (error) {
-        res.status(500).send({ message: "Failed to fetch daley" });
+        res.status(500).send({ message: 'Failed to fetch daley' });
       }
     });
 
+     // get ads
+     app.get('/ads', async(req,res) => {
+      try{
+       const result = await adsCollection.find().toArray();
+       res.send(result);
+      }catch(error)  {
+       res.status(500).send({message: 'failed to fetch ads'})
+      }
+   })
+
     // get products
-    app.get("/products", async (req, res) => {
+    app.get('/products', async (req, res) => {
       try {
         const result = await productsCollection.find().toArray();
         res.send(result);
       } catch (error) {
-        res.status(500).send({ message: "Failed to fetch products" });
+        res.status(500).send({ message: 'Failed to fetch products' });
       }
     });
 
-
-    // get ads
-    app.get('/ads', async(req,res) => {
-       try{
-        const result = await adsCollection.find().toArray();
-        res.send(result);
-       }catch(error)  {
-        res.status(500).send({message: 'failed to fetch ads'})
-       }
+    // count all products
+    app.get('/count-products', async (req,res) => {
+      const result = await productsCollection.estimatedDocumentCount();
+      res.send({count: result});
     })
 
+
+   
+
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
+    await client.db('admin').command({ ping: 1 });
     console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
+      'Pinged your deployment. You successfully connected to MongoDB!'
     );
   } finally {
     // Ensures that the client will close when you finish/error
