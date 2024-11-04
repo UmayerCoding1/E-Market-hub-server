@@ -54,7 +54,7 @@ async function run() {
     });
 
     // get bottom banner
-    app.get("bottom_banner", async (req, res) => {
+    app.get("/bottom-banner", async (req, res) => {
       const result = await bottomBannerCollection.find().toArray();
       res.send(result)
     });
