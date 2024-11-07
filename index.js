@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 8000;
@@ -79,8 +79,9 @@ async function run() {
 
     app.get('/products/:id', async(req,res) => {
       const id = req.params.id;
-      console.log(id);
-      
+      const filter = {_id: new ObjectId(id)};
+      const result = await productsCollection.findOne(filter);
+      res.send(result);
     })
 
     // count all products
