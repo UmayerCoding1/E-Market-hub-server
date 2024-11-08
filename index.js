@@ -3,14 +3,20 @@ const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const app = express();
+const React = require("react");
+const ReactDomServer = require("react-dom/server");
 const port = process.env.PORT || 8000;
 
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Adjust methods as needed
-  credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization']
+    origin: [
+      "http://localhost:5173",
+      "https://672e4d4d364cc8e454fab0b6--spontaneous-meerkat-6f01c3.netlify.app"
+
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE"], // Adjust methods as needed
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 app.use(express.json());
@@ -42,7 +48,9 @@ async function run() {
     const daleyCollection = client.db("eMarketHubDb").collection("daley");
     const productsCollection = client.db("eMarketHubDb").collection("products");
     const adsCollection = client.db("eMarketHubDb").collection("ads");
-    const bottomBannerCollection = client.db("eMarketHubDb").collection("buttom_banner");
+    const bottomBannerCollection = client
+      .db("eMarketHubDb")
+      .collection("buttom_banner");
 
     // get categories
     app.get("/categories", async (req, res) => {
@@ -59,7 +67,7 @@ async function run() {
     // get bottom banner
     app.get("/bottom-banner", async (req, res) => {
       const result = await bottomBannerCollection.find().toArray();
-      res.send(result)
+      res.send(result);
     });
 
     // get daley
@@ -80,20 +88,18 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/products/:id', async(req,res) => {
+    app.get("/products/:id", async (req, res) => {
       const id = req.params.id;
-      const filter = {_id: new ObjectId(id)};
+      const filter = { _id: new ObjectId(id) };
       const result = await productsCollection.findOne(filter);
       res.send(result);
-    })
+    });
 
     // count all products
     app.get("/count-products", async (req, res) => {
       const result = await productsCollection.estimatedDocumentCount();
       res.send({ count: result });
     });
-
-    
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
