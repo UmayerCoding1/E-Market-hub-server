@@ -43,8 +43,6 @@ async function run() {
     // jwt api
     app.post("/jwt", async (req, res) => {
       const user = req.body;
-      console.log(user);
-      
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
         expiresIn: "1h",
       });
@@ -56,7 +54,11 @@ async function run() {
         return res.status(401).send({ message: "unauthorized access" });
       }
 
-      const token = req.headers.authorization && req.headers.authorization.split("Bearer")[1];
+      console.log(req.headers.authorization.split('Bearer')[1]);
+      
+      const token = req.headers.authorization.split("Bearer")[1];
+      console.log(token);
+      
       jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decode) => {
         if (err) {
           return res.status(401).send({ message: "unauthorized access" });
@@ -78,13 +80,34 @@ async function run() {
     const bottomBannerCollection = client
       .db("eMarketHubDb")
       .collection("buttom_banner");
-    const cartsCollection = client.db("eMarketHubDb").collection("carts");
+      const cartsCollection = client.db("eMarketHubDb").collection("carts");
+    const divisionsCollection = client.db("eMarketHubDb").collection("divisions");
+    const districtsCollection = client.db("eMarketHubDb").collection("districts");
+    const upazilasCollection = client.db("eMarketHubDb").collection("upazilas");
+    const addressesCollection = client.db("eMarketHubDb").collection("addresses");
 
     // user related api
     app.post("/users", async (req, res) => {
       const user = req.body;
     });
 
+    // divisions ,districts, upazilas related api
+    app.get('/divisions', async(req,res) => {
+      const result = await divisionsCollection.find().toArray();
+      res.send(result);
+    });
+
+    app.get('/districts', async(req,res) => {
+      const {division} = req.query;
+      const result = await districtsCollection.find({division: division}).toArray();
+      res.send(result);
+    })
+
+    app.get('/upazilas', async(req,res) => {
+      const {city} = req.query;
+      const result = await upazilasCollection.find({district: city}).toArray();
+      res.send(result);
+    })
     // get categories
     app.get("/categories", async (req, res) => {
       const result = await categoryCollection.find().toArray();
@@ -117,9 +140,7 @@ async function run() {
 
     // get products
     app.get("/products", async (req, res) => {
-      // const query = req.query;
       const { productName = "", category, sort = "" } = req.query;
-      // console.log(typeof query?.productName,'s');
 
       const filter = {
         ...(productName && {
@@ -162,7 +183,7 @@ async function run() {
       const product = req.body;
       // const {product_name,user_email,quantity} = product;
       const existingItem = await cartsCollection.findOne({product_name: product.product_name, user_email: product.user_email});
-      console.log(existingItem);
+      
       
       if (existingItem){
         await cartsCollection.updateOne(
@@ -185,6 +206,33 @@ async function run() {
       const filter = {_id: new ObjectId(id)};
       const result = await cartsCollection.deleteOne(filter);
       res.send(result);
+    })
+
+
+    // address 
+    app.get('/addresses', async(req,res) => {
+      const {email} = req.query;
+      console.log(email);
+      
+      const result = await addressesCollection.find({userEmail: email}).toArray();
+      res.send(result);
+    })
+
+
+
+
+    app.post('/addresses', async (req,res) => {
+        const address = req.body;
+        const existingAddress = await addressesCollection.findOne({userEmail: address.userEmail});
+        if(existingAddress){
+          console.log('address already exist');
+          return res.send({address: true});
+        }else{
+          const result = await addressesCollection.insertOne(address);
+        res.send(result)
+        }
+        
+        
     })
 
     // count all products
