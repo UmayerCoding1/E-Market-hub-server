@@ -4,6 +4,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const app = express();
 const jwt = require("jsonwebtoken");
+const SSLCommerzPayment = require("sslcommerz-lts");
 const React = require("react");
 const port = process.env.PORT || 8000;
 
@@ -40,6 +41,10 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
 
+    const store_id = process.env.STORE_ID;
+    const store_passwd = process.env.STORE_PASS;
+    const is_live = false; //true for live, false for sandbox
+
     // jwt api
     app.post("/jwt", async (req, res) => {
       const user = req.body;
@@ -54,11 +59,11 @@ async function run() {
         return res.status(401).send({ message: "unauthorized access" });
       }
 
-      console.log(req.headers.authorization.split('Bearer')[1]);
-      
+      console.log(req.headers.authorization.split("Bearer")[1]);
+
       const token = req.headers.authorization.split("Bearer")[1];
       console.log(token);
-      
+
       jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decode) => {
         if (err) {
           return res.status(401).send({ message: "unauthorized access" });
@@ -80,11 +85,18 @@ async function run() {
     const bottomBannerCollection = client
       .db("eMarketHubDb")
       .collection("buttom_banner");
-      const cartsCollection = client.db("eMarketHubDb").collection("carts");
-    const divisionsCollection = client.db("eMarketHubDb").collection("divisions");
-    const districtsCollection = client.db("eMarketHubDb").collection("districts");
+    const cartsCollection = client.db("eMarketHubDb").collection("carts");
+    const divisionsCollection = client
+      .db("eMarketHubDb")
+      .collection("divisions");
+    const districtsCollection = client
+      .db("eMarketHubDb")
+      .collection("districts");
     const upazilasCollection = client.db("eMarketHubDb").collection("upazilas");
-    const addressesCollection = client.db("eMarketHubDb").collection("addresses");
+    const addressesCollection = client
+      .db("eMarketHubDb")
+      .collection("addresses");
+    const orderCollection = client.db('eMarketHubDb').collection('orders');
 
     // user related api
     app.post("/users", async (req, res) => {
@@ -92,22 +104,26 @@ async function run() {
     });
 
     // divisions ,districts, upazilas related api
-    app.get('/divisions', async(req,res) => {
+    app.get("/divisions", async (req, res) => {
       const result = await divisionsCollection.find().toArray();
       res.send(result);
     });
 
-    app.get('/districts', async(req,res) => {
-      const {division} = req.query;
-      const result = await districtsCollection.find({division: division}).toArray();
+    app.get("/districts", async (req, res) => {
+      const { division } = req.query;
+      const result = await districtsCollection
+        .find({ division: division })
+        .toArray();
       res.send(result);
-    })
+    });
 
-    app.get('/upazilas', async(req,res) => {
-      const {city} = req.query;
-      const result = await upazilasCollection.find({district: city}).toArray();
+    app.get("/upazilas", async (req, res) => {
+      const { city } = req.query;
+      const result = await upazilasCollection
+        .find({ district: city })
+        .toArray();
       res.send(result);
-    })
+    });
     // get categories
     app.get("/categories", async (req, res) => {
       const result = await categoryCollection.find().toArray();
@@ -182,58 +198,152 @@ async function run() {
     app.post("/cart", async (req, res) => {
       const product = req.body;
       // const {product_name,user_email,quantity} = product;
-      const existingItem = await cartsCollection.findOne({product_name: product.product_name, user_email: product.user_email});
-      
-      
-      if (existingItem){
+      const existingItem = await cartsCollection.findOne({
+        product_name: product.product_name,
+        user_email: product.user_email,
+      });
+
+      if (existingItem) {
         await cartsCollection.updateOne(
-          {_id: existingItem._id},
-          {$set: {quantity: existingItem.quantity + product.quantity }}
-        )
-        console.log('update');
-        res.send({message: 'card product is update'})
-      }
-     
-       else{
+          { _id: existingItem._id },
+          { $set: { quantity: existingItem.quantity + product.quantity } }
+        );
+        console.log("update");
+        res.send({ message: "card product is update" });
+      } else {
         const result = await cartsCollection.insertOne(product);
         res.send(result);
-        console.log('new');
-       }
+        console.log("new");
+      }
     });
 
-    app.delete('/cart/:id', async(req,res) => {
+    app.delete("/cart/:id", async (req, res) => {
       const id = req.params.id;
-      const filter = {_id: new ObjectId(id)};
+      const filter = { _id: new ObjectId(id) };
       const result = await cartsCollection.deleteOne(filter);
       res.send(result);
-    })
+    });
 
-
-    // address 
-    app.get('/addresses', async(req,res) => {
-      const {email} = req.query;
-      console.log(email);
-      
-      const result = await addressesCollection.find({userEmail: email}).toArray();
+    // address
+    app.get("/addresses", async (req, res) => {
+      const { email } = req.query;
+      const result = await addressesCollection.findOne({ userEmail: email });
       res.send(result);
-    })
+    });
+
+    app.post("/addresses", async (req, res) => {
+      const address = req.body;
+      const existingAddress = await addressesCollection.findOne({
+        userEmail: address.userEmail,
+      });
+      if (existingAddress) {
+        console.log("address already exist");
+        return res.send({ address: true });
+      } else {
+        const result = await addressesCollection.insertOne(address);
+        res.send(result);
+      }
+    });
 
 
+    app.post('/order', async(req,res) => {
+      const orderInfo = req.body;
+      // console.log(...orderInfo.cartId);
+      const queryCart = {_id: {$in: orderInfo.cartId.map((id) => new ObjectId(id))}}
+      const queryProduct = {_id: {$in: orderInfo.productId.map((id) => new ObjectId(id))}}
+      
+      const addedProduct = await cartsCollection.find(queryCart).toArray();
+      const product = await productsCollection.find(queryProduct).toArray();
 
+      const total = addedProduct.reduce((total, product) => total + (product.price - product.discountPrice) * product.quantity,0)
+      const total_price = (total + orderInfo.shippingFee) - orderInfo.discountTk;
+      const tran_id = new ObjectId().toString();
+      
 
-    app.post('/addresses', async (req,res) => {
-        const address = req.body;
-        const existingAddress = await addressesCollection.findOne({userEmail: address.userEmail});
-        if(existingAddress){
-          console.log('address already exist');
-          return res.send({address: true});
-        }else{
-          const result = await addressesCollection.insertOne(address);
-        res.send(result)
+      const data = {
+        total_amount: total_price,
+        currency: 'BDT',
+        tran_id: tran_id, // use unique tran_id for each api call
+        success_url: `https://e-market-hub-server.onrender.com/payment/success/${tran_id}`,
+        fail_url: `https://e-market-hub-server.onrender.com/payment/fail/${tran_id}`,
+        // success_url: `http://localhost:8000/payment/success/${tran_id}`,
+        // fail_url: `http://localhost:8000/payment/fail/${tran_id}`,
+        cancel_url: 'http://localhost:3030/cancel',
+        ipn_url: 'http://localhost:3030/ipn',
+        shipping_method: 'Courier',
+        product_name: 'Computer.',
+        product_category: 'Electronic',
+        product_profile: 'general',
+        cus_name: orderInfo.cus_name,
+        cus_email: orderInfo.cus_email,
+        cus_add1: orderInfo.cus_add,
+        cus_add2: orderInfo.cus_add,
+        cus_city: orderInfo.cus_city,
+        cus_state: orderInfo.cus_state,
+        cus_postcode: '***',
+        cus_country: 'Bangladesh',
+        cus_phone: orderInfo.cus_number,
+        cus_fax: '01711111111',
+        ship_name: 'Customer Name',
+        ship_add1: 'Dhaka',
+        ship_add2: 'Dhaka',
+        ship_city: 'Dhaka',
+        ship_state: 'Dhaka',
+        ship_postcode: 1000,
+        ship_country: 'Bangladesh',
+    };
+    console.log(data);
+    
+    const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live)
+    sslcz.init(data).then(apiResponse => {
+        // Redirect the user to payment gateway
+        let GatewayPageURL = apiResponse.GatewayPageURL
+        res.send({url: GatewayPageURL})
+        const finalOrder = {
+          product,
+          paidStatus: false,
+          tranjectionId: tran_id,
+          cus_email: orderInfo.cus_email,
+          status: 'pending',
+          addedProduct
         }
+
+        const result = orderCollection.insertOne(finalOrder);
         
-        
+        console.log('Redirecting to: ', GatewayPageURL)
+    });
+
+    app.post('/payment/success/:tranId', async(req,res) => {
+      console.log(req.params.tranId);
+      const result = await orderCollection.updateOne(
+        {tranjectionId: req.params.tranId},
+        {
+          $set: {
+            paidStatus: true,
+          }
+        }
+      )
+
+      if(result.matchedCount > 0){
+        const addedProductDelete = await cartsCollection.deleteMany(queryCart);
+        console.log(addedProductDelete);
+        // update2
+        res.redirect('http://localhost:5173/my-order')
+      }
     })
+
+
+    app.post('/payment/fail/:tranId', async (req,res) => {
+      const result = await orderCollection.deleteOne({tranjectionId: req.params.tranId});
+// update1
+      if(result.deletedCount){
+        res.redirect('http://localhost:5173/my-account');
+      }
+    })
+
+    })
+
+   
 
     // count all products
     app.get("/count-products", async (req, res) => {
