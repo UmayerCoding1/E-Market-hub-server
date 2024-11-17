@@ -12,7 +12,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "http://localhost:4173/",
+      "http://localhost:4173",
       "https://spontaneous-meerkat-6f01c3.netlify.app",
     ],
     methods: ["GET", "POST", "PUT", "DELETE"], // Adjust methods as needed
