@@ -27,33 +27,34 @@ app.get("/", (req, res) => {
 });
 
 // jwt api
-app.post('/jwt', (req,res)=> {
-  const user = req.body;
-   const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: '1h'} )
-   res.send({token});
-})
+app.post("/jwt", (req, res) => {
+  const { email } = req.body;
+  const user = { email };
+  const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+    expiresIn: "1h",
+  });
+  res.send({ token });
+});
 
-// verify token 
-const verifyToken = (req,res,next) => {
+// verify token
+const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  if(!authHeader){
-    console.log('access token nai');
-    return res.status(401).send({message: '"unauthorized  access'})
+
+  if (!authHeader) {
+    return res.status(401).send({ message: '"unauthorized  access' });
   }
 
-  const token = authHeader.split('Barer')[1];
+  const token = authHeader.split(" ")[1];
 
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err,decode) => {
-    if(err){
-      return res.status(401).send({message: 'unauthorized access'})
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decode) => {
+    if (err) {
+     
+      return res.status(401).send({ message: "unauthorized access" });
     }
-    req.decode = decode
+    req.decode = decode;
     next();
-  })
-  
-}
-
-
+  });
+};
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ipmfa.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -98,19 +99,19 @@ async function run() {
       .db("eMarketHubDb")
       .collection("addresses");
     const orderCollection = client.db("eMarketHubDb").collection("orders");
+    const myListCollection = client.db("eMarketHubDb").collection('my_list');
 
     // user related api
     app.post("/users", async (req, res) => {
       const user = req.body;
-      const query = {email: user.email};
+      const query = { email: user.email };
       const existing = await usersCollection.findOne(query);
-      if(existing){
-        return res.send({message: 'user already exist'})
-      }else{
+      if (existing) {
+        return res.send({ message: "user already exist" });
+      } else {
         const result = await usersCollection.insertOne(user);
         res.send(result);
       }
-      
     });
 
     // divisions ,districts, upazilas related api
@@ -238,7 +239,7 @@ async function run() {
     });
 
     // address
-    app.get("/addresses", async (req, res) => {
+    app.get("/addresses", verifyToken, async (req, res) => {
       const { email } = req.query;
       const result = await addressesCollection.findOne({ userEmail: email });
       res.send(result);
@@ -258,8 +259,33 @@ async function run() {
       }
     });
 
+    // my list related api 
+    app.get('/my-list',verifyToken, async(req,res) => {
+        const {email} = req.query;
+        const result = await myListCollection.find({email: email}).toArray();
+        res.send(result);
+    });
+
+
+
+    app.post('/my-list', async (req,res) => {
+      const {id,email} = req.body;
+
+      const product = await productsCollection.findOne({_id: new ObjectId(id)})
+      const listItem = {product,email}
+      const result = await myListCollection.insertOne(listItem);
+      res.send(result);
+    });
+
+    app.delete('/my-list/:id', async(req,res) => {
+       const id = req.params.id;
+       const query = {_id: new ObjectId(id)};
+       const result = await myListCollection.deleteOne(query);
+       res.send(result);
+    })
+
     // order related api
-    app.get("/orderUI", async (req, res) => {
+    app.get("/orderUI", verifyToken, async (req, res) => {
       const query = req.query;
 
       const filter = {
@@ -389,7 +415,7 @@ async function run() {
           const addedProductDelete = await cartsCollection.deleteMany(
             queryCartItem
           );
-         
+
           // update2
           res.redirect("http://localhost:5173/my-order");
         }
@@ -405,6 +431,7 @@ async function run() {
         }
       });
     });
+
 
     // count all products
     app.get("/count-products", async (req, res) => {
