@@ -4,6 +4,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const app = express();
 const jwt = require("jsonwebtoken");
+const helmet = require('helmet');
 const SSLCommerzPayment = require("sslcommerz-lts");
 const React = require("react");
 const port = process.env.PORT || 8000;
@@ -12,7 +13,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "http://localhost:4173",
+      "http://localhost:4174",
       "https://spontaneous-meerkat-6f01c3.netlify.app",
     ],
     methods: ["GET", "POST", "PUT", "DELETE"], // Adjust methods as needed
@@ -21,6 +22,7 @@ app.use(
   })
 );
 app.use(express.json());
+app.use(helmet());
 
 app.get("/", (req, res) => {
   res.send("EMarket Hub server is ready");
