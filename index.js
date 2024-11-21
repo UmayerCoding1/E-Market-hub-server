@@ -13,8 +13,9 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "http://localhost:4174",
-      "https://spontaneous-meerkat-6f01c3.netlify.app",
+      "http://localhost:5174",
+      "https://emarket-hub.web.app",
+      "https://emarket-hub.firebaseapp.com/"
     ],
     methods: ["GET", "POST", "PUT", "DELETE"], // Adjust methods as needed
     credentials: true,
@@ -22,7 +23,9 @@ app.use(
   })
 );
 app.use(express.json());
-app.use(helmet());
+app.use(helmet({
+  frameguard: false,
+}));
 
 app.get("/", (req, res) => {
   res.send("EMarket Hub server is ready");
@@ -191,6 +194,12 @@ async function run() {
 
       res.send(result);
     });
+
+    app.get('/products/:id', async(req,res) => {
+      const id = req.params.id;
+      const result = await productsCollection.findOne({_id: new ObjectId(id)});
+      res.send(result);
+    })
 
     app.get("/products/:id", async (req, res) => {
       const id = req.params.id;
