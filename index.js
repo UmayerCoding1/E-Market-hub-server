@@ -15,7 +15,7 @@ app.use(
       "http://localhost:5173",
       "http://localhost:5174",
       "https://emarket-hub.web.app",
-      "https://emarket-hub.firebaseapp.com/"
+      "https://emarket-hub.firebaseapp.com"
     ],
     methods: ["GET", "POST", "PUT", "DELETE"], // Adjust methods as needed
     credentials: true,
