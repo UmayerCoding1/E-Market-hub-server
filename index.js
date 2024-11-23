@@ -1,20 +1,12 @@
-  const express = require("express");
-  const cors = require("cors");
-  const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
-  require("dotenv").config();
-  const jwt = require("jsonwebtoken");
-  const helmet = require('helmet');
-  const SSLCommerzPayment = require("sslcommerz-lts");
-  const React = require("react");
 
 
-//   import express from 'express';
-// import cors from 'cors';
-// import { MongoClient, ServerApiVersion, ObjectId } from 'mongodb';
-// import dotenv from 'dotenv';
-// import jwt from 'jsonwebtoken';
-// import helmet from 'helmet';
-// import SSLCommerzPayment from 'sslcommerz-lts';
+  import express from 'express';
+import cors from 'cors';
+import { MongoClient, ServerApiVersion, ObjectId } from 'mongodb';
+import dotenv from 'dotenv';
+import jwt from 'jsonwebtoken';
+import helmet from 'helmet';
+import SSLCommerzPayment from 'sslcommerz-lts';
 
 
 dotenv.config();
