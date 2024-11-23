@@ -7,7 +7,12 @@ import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
 import helmet from 'helmet';
 import SSLCommerzPayment from 'sslcommerz-lts';
+import multer from 'multer';
+import path from 'path'
+import { fileURLToPath } from 'url';
 
+const _fileNAme = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(_fileNAme);
 
 dotenv.config();
   const app = express();
@@ -21,15 +26,16 @@ dotenv.config();
         "https://emarket-hub.web.app",
         "https://emarket-hub.firebaseapp.com"
       ],
-      methods: ["GET", "POST", "PUT", "DELETE"], // Adjust methods as needed
+      methods: ["GET", "POST", "PUT", "DELETE"],
       credentials: true,
       allowedHeaders: ["Content-Type", "Authorization"],
     })
   );
   app.use(express.json());
-  app.use(helmet({
-    frameguard: false,
-  }));
+  // app.use(helmet({
+  //   frameguard: false,
+  // }));
+  app.use("/upload", express.static(path.join(__dirname, "upload")));
 
   app.get("/", (req, res) => {
     res.send("EMarket Hub server is ready");
@@ -65,6 +71,17 @@ dotenv.config();
     });
   };
 
+  const storage = multer.diskStorage({
+    destination: (req,file,cb) => {
+         cb(null, './upload')
+    },
+    filename: (req,file,cb) => {
+      cb(null, `eMarketHun-product-${Date.now()}-${file.originalname}`)
+    }
+  })
+
+
+  const upload = multer({storage});
   const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ipmfa.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
   // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -109,6 +126,7 @@ dotenv.config();
         .collection("addresses");
       const orderCollection = client.db("eMarketHubDb").collection("orders");
       const myListCollection = client.db("eMarketHubDb").collection('my_list');
+      
 
       // user related api
       app.post("/users", async (req, res) => {
@@ -130,9 +148,14 @@ dotenv.config();
       });
 
       app.get("/districts", async (req, res) => {
-        const { division } = req.query;
+        const query = req.query;
+        const filter = {
+          ...(query.division && {
+            division: query?.division
+          })
+        }
         const result = await districtsCollection
-          .find({ division: division })
+          .find(filter)
           .toArray();
         res.send(result);
       });
@@ -211,6 +234,15 @@ dotenv.config();
         const result = await productsCollection.findOne(filter);
         res.send(result);
       });
+
+      app.post('/product', upload.array('products',2), async(req,res) => {
+          
+          const image = req.files.map((img) => `${img.path}`);
+          const productData = req.body;
+          productData.image = image;
+         const result = await productsCollection.insertOne(productData);
+         res.send(result);
+      })
 
       // add to cart related api
 
