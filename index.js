@@ -151,7 +151,7 @@ async function run() {
         console.log(req.body);
         
         
-        const filePaths = req.files.map((file) => file.path);
+        const filePaths = req.files?.map((file) => file.path);
         const uploadedFile = await uploadMultipleFilesOnCloudinary(filePaths);
         res.send({ url: uploadedFile });
       }
