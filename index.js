@@ -159,6 +159,8 @@ async function run() {
       "/api/image/uploads",
       upload.array("productImage", 2),
       async (req, res) => {
+        console.log(req.files);
+        
         const filePaths = req.files.map((file) => file.path);
         const uploadedFile = await uploadMultipleFilesOnCloudinary(filePaths);
         res.send({ url: uploadedFile });
@@ -564,10 +566,10 @@ async function run() {
         total_amount: parseInt(total_price),
         currency: "BDT",
         tran_id: tran_id, // use unique tran_id for each api call
-        success_url: `http://localhost:8000/payment/success/${tran_id}`,
-        fail_url: `http://localhost:8000/payment/fail/${tran_id}`,
-        // success_url: `https://e-market-hub-server.onrender.com/payment/success/${tran_id}`,
-        // fail_url: `https://e-market-hub-server.onrender.com/payment/fail/${tran_id}`,
+        // success_url: `http://localhost:8000/payment/success/${tran_id}`,
+        // fail_url: `http://localhost:8000/payment/fail/${tran_id}`,
+        success_url: `https://e-market-hub-server.onrender.com/payment/success/${tran_id}`,
+        fail_url: `https://e-market-hub-server.onrender.com/payment/fail/${tran_id}`,
         cancel_url: "http://localhost:3030/cancel",
         ipn_url: "http://localhost:3030/ipn",
         shipping_method: "Courier",
@@ -665,7 +667,7 @@ async function run() {
         });
         // update1
         if (result.deletedCount) {
-          res.redirect("http://localhost:5173/my-account");
+          res.redirect("https://emarket-hub.web.app/my-account");
         }
       });
     });
