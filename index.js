@@ -153,6 +153,9 @@ async function run() {
       
       async (req, res) => {
         console.log(req.files);
+        if(!req.files){
+          return res.status(500).send({message: "File is not found"})
+        }
         
         
         const filePaths = req.files?.map((file) => file.path);
