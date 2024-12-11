@@ -48,7 +48,8 @@ const uploadOnCloudinary = async (localFilePath) => {
 // upload multiple file in Cloudinary
 const uploadMultipleFilesOnCloudinary = async (filePaths) => {
   if(!filePaths){
-    return res.status(502).send({message: 'file not found'})
+    return console.log('file path is not find', filePaths);
+    
   }
   const uploadPromises = filePaths.map((filePath) =>
     uploadOnCloudinary(filePath)
