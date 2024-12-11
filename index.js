@@ -23,14 +23,14 @@ app.use(
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"],
+    // allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 app.use(express.json());
 // app.use(helmet({
 //   frameguard: false,
 // }));
-
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -157,9 +157,10 @@ async function run() {
     // image upload
     app.post(
       "/api/image/uploads",
-      upload.array("productImage", 2),
+      
       async (req, res) => {
-        console.log(req.files);
+        console.log(req.body);
+        
         
         const filePaths = req.files.map((file) => file.path);
         const uploadedFile = await uploadMultipleFilesOnCloudinary(filePaths);
