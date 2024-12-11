@@ -92,7 +92,7 @@ const verifyToken = (req, res, next) => {
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "./public/upload");
+    cb(null, "./upload");
   },
 
   filename: (req, file, cb) => {
