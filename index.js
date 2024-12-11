@@ -47,6 +47,9 @@ const uploadOnCloudinary = async (localFilePath) => {
 };
 // upload multiple file in Cloudinary
 const uploadMultipleFilesOnCloudinary = async (filePaths) => {
+  if(!filePaths){
+    return res.status(502).send({message: 'file not found'})
+  }
   const uploadPromises = filePaths.map((filePath) =>
     uploadOnCloudinary(filePath)
   );
@@ -148,7 +151,7 @@ async function run() {
       "/api/image/uploads",
       
       async (req, res) => {
-        console.log(req.body);
+        console.log(req.files);
         
         
         const filePaths = req.files?.map((file) => file.path);
