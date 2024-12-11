@@ -150,7 +150,7 @@ async function run() {
     // image upload
     app.post(
       "/api/image/uploads",
-      
+      upload.array("productImage"),
       async (req, res) => {
         console.log(req.files);
         if(!req.files){
