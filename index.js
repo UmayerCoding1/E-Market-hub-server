@@ -7,6 +7,7 @@ import SSLCommerzPayment from "sslcommerz-lts";
 import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
+import names from './umayer'
 
 dotenv.config();
 const app = express();
@@ -30,7 +31,7 @@ app.use(express.json());
 // app.use(helmet({
 //   frameguard: false,
 // }));
-
+names();
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -213,17 +214,19 @@ async function run() {
       res.send(result);
     });
 
-    app.post('/categories', async(req,res) => {
+    app.post("/categories", async (req, res) => {
       const category = req.body;
       const result = await categoryCollection.insertOne(category);
       res.send(result);
     });
 
-    app.delete('/categories/:id', async(req,res) => {
+    app.delete("/categories/:id", async (req, res) => {
       const id = req.params.idx;
-      const result = await categoryCollection.deleteOne({_id: new ObjectId(id)});
-      res.send(result)
-    })
+      const result = await categoryCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
+      res.send(result);
+    });
 
     // get banners
     app.get("/banners", async (req, res) => {
@@ -234,17 +237,15 @@ async function run() {
     app.post("/banner", async (req, res) => {
       const banner = req.body;
       const result = await bannerCollection.insertOne(banner);
-      res.send(result)
-      
+      res.send(result);
     });
 
-    app.delete('/banner/:id', async(req,res) => {
+    app.delete("/banner/:id", async (req, res) => {
       const id = req.params.id;
-      const filter = {_id: new ObjectId(id)};
+      const filter = { _id: new ObjectId(id) };
       const result = await bannerCollection.deleteOne(filter);
       res.send(result);
-      
-    })
+    });
 
     // get bottom banner
     app.get("/bottom-banner", async (req, res) => {
@@ -297,12 +298,12 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/products/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-      const result = await productsCollection.findOne(filter);
-      res.send(result);
-    });
+    // app.get("/products/:id", async (req, res) => {
+    //   const id = req.params.id;
+    //   const filter = { _id: new ObjectId(id) };
+    //   const result = await productsCollection.findOne(filter);
+    //   res.send(result);
+    // });
 
     app.post("/product", async (req, res) => {
       const product = req.body;
@@ -379,6 +380,19 @@ async function run() {
       res.send(result);
     });
 
+    app.put("/update/cartQuantity/:id", verifyToken, async (req, res) => {
+      const { updatedQuantity } = req.body;
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          quantity: updatedQuantity,
+        },
+      };
+      const result = await cartsCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
     // address
     app.get("/addresses", verifyToken, async (req, res) => {
       const { email } = req.query;
@@ -420,13 +434,15 @@ async function run() {
 
     app.delete("/my-list/:id", async (req, res) => {
       const id = req.params.id;
+      console.log(id);
       const query = { _id: new ObjectId(id) };
       const result = await myListCollection.deleteOne(query);
       res.send(result);
+      
     });
 
     // order related api
-    app.get("/orderUI", verifyToken, async (req, res) => {
+    app.get("/orderUI", async (req, res) => {
       const query = req.query;
 
       const filter = {
@@ -437,12 +453,48 @@ async function run() {
           query?.status !== "" && {
             orderStatus: query.status,
           }),
+          ...(query?.sortPendingOrder && {
+            tranjectionId:query?.sortPendingOrder
+          })
       };
 
       const result = await orderCollection.find(filter).toArray();
-
       res.send(result);
     });
+
+    app.get('/confirmOrder', async(req,res) => {
+      const query = req.query;
+      const find = {orderStatus: 'confirm'};
+      const existConfirmOrder = await orderCollection.find(find).toArray();
+      const result = existConfirmOrder.filter(order =>query.sortConfirmOrder ? order.tranjectionId === query.sortConfirmOrder: order);
+      res.send(result)
+    });
+
+    app.get('/deliveredOrder', async(req,res) => {
+      const query = req.query;
+      const find = {orderStatus: 'delivered'};
+      const existDeliveryOrder = await orderCollection.find(find).toArray();
+      const result = existDeliveryOrder.filter(order =>query.sortDeliveredOrder ? order.tranjectionId === query.sortDeliveredOrder : order);
+      res.send(result)
+    })
+
+
+    // update order status
+    app.put('/order/:id', async(req,res) => {
+      const id = req.params.id;
+      const {updatedStatus} = req.body;
+
+      const filter = {_id: new ObjectId(id)}
+     
+      const updatedDoc = {
+        $set: {
+          orderStatus: updatedStatus
+        }
+      }
+
+      const result = await orderCollection.updateOne(filter,updatedDoc);
+      res.send(result);
+    })
 
     app.post("/order", async (req, res) => {
       const orderInfo = req.body;
@@ -450,13 +502,13 @@ async function run() {
       const queryCart = {
         _id: { $in: orderInfo.cartId.map((id) => new ObjectId(id)) },
       };
-      const queryProduct = {
-        _id: { $in: orderInfo.productId.map((id) => new ObjectId(id)) },
-      };
+      
 
       const addedProduct = await cartsCollection.find(queryCart).toArray();
-      const product = await productsCollection.find(queryProduct).toArray();
-
+      
+      const user = await usersCollection.findOne({email: orderInfo.cus_email});
+      
+      
       const total = addedProduct.reduce(
         (total, product) =>
           total + (product.price - product.discountPrice) * product.quantity,
@@ -503,7 +555,6 @@ async function run() {
         // Redirect the user to payment gateway
         let GatewayPageURL = apiResponse.GatewayPageURL;
         res.send({ url: GatewayPageURL });
-
         const finalOrder = {
           paidStatus: false,
           tranjectionId: tran_id,
@@ -511,6 +562,7 @@ async function run() {
           orderDate: new Date(),
           orderStatus: "pending",
           totalAmount: total_price,
+          userId: user._id,
           item: addedProduct.map((item) => ({
             productId: item.product_id,
             quantity: item.quantity,
@@ -552,13 +604,16 @@ async function run() {
           },
         };
 
+        console.log(result);
+        
+
         if (result.matchedCount > 0) {
           const addedProductDelete = await cartsCollection.deleteMany(
             queryCartItem
           );
 
           // update2
-          res.redirect("http://localhost:5173/my-order");
+          res.redirect("https://emarket-hub.web.app/my-order");
         }
       });
 
