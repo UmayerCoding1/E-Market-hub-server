@@ -92,7 +92,7 @@ const verifyToken = (req, res, next) => {
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "./upload");
+    cb(null, "./public/upload");
   },
 
   filename: (req, file, cb) => {
@@ -150,7 +150,7 @@ async function run() {
     // image upload
     app.post(
       "/api/image/uploads",
-      upload.array("productImage"),
+      upload.array("productImage",2),
       async (req, res) => {
         console.log(req.files);
         if(!req.files){
