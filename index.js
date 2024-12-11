@@ -7,7 +7,6 @@ import SSLCommerzPayment from "sslcommerz-lts";
 import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
-import names from './umayer'
 
 dotenv.config();
 const app = express();
@@ -31,7 +30,7 @@ app.use(express.json());
 // app.use(helmet({
 //   frameguard: false,
 // }));
-names();
+
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -221,7 +220,7 @@ async function run() {
     });
 
     app.delete("/categories/:id", async (req, res) => {
-      const id = req.params.idx;
+      const id = req.params.id;
       const result = await categoryCollection.deleteOne({
         _id: new ObjectId(id),
       });
@@ -259,6 +258,17 @@ async function run() {
       res.send(result);
     });
 
+    app.post('/daley', async (req,res) => {
+      const daleyData = req.body;
+      const daleyCount = await daleyCollection.estimatedDocumentCount();
+      if(daleyCount >= 2){
+        return res.send({message: '2 daley already add. Added by only 2 daley please try to next time'})
+      }
+      const result = await daleyCollection.insertOne(daleyData);
+      res.send(result)
+         
+    })
+
     // get ads
     app.get("/ads", async (req, res) => {
       const result = await adsCollection.find().toArray();
@@ -267,7 +277,7 @@ async function run() {
 
     // get products
     app.get("/products", async (req, res) => {
-      const { productName = "", category, sort = "" } = req.query;
+      const { productName = "", category, sort = "", subCategory } = req.query;
 
       const filter = {
         ...(productName && {
@@ -276,6 +286,10 @@ async function run() {
 
         ...(category && {
           category: category,
+        }),
+
+        ...(subCategory && {
+          subCategory: subCategory,
         }),
       };
 
@@ -286,7 +300,6 @@ async function run() {
       };
 
       const result = await productsCollection.find(filter, option).toArray();
-
       res.send(result);
     });
 
@@ -298,18 +311,13 @@ async function run() {
       res.send(result);
     });
 
-    // app.get("/products/:id", async (req, res) => {
-    //   const id = req.params.id;
-    //   const filter = { _id: new ObjectId(id) };
-    //   const result = await productsCollection.findOne(filter);
-    //   res.send(result);
-    // });
-
     app.post("/product", async (req, res) => {
       const product = req.body;
       const result = await productsCollection.insertOne(product);
       res.send(result);
     });
+
+   
 
     app.put("/product/:id", async (req, res) => {
       const id = req.params.id;
@@ -336,6 +344,13 @@ async function run() {
       };
 
       const result = await productsCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    app.delete("/product/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)};
+      const result = await productsCollection.deleteOne(query);
       res.send(result);
     });
 
@@ -438,7 +453,6 @@ async function run() {
       const query = { _id: new ObjectId(id) };
       const result = await myListCollection.deleteOne(query);
       res.send(result);
-      
     });
 
     // order related api
@@ -453,48 +467,77 @@ async function run() {
           query?.status !== "" && {
             orderStatus: query.status,
           }),
-          ...(query?.sortPendingOrder && {
-            tranjectionId:query?.sortPendingOrder
-          })
+        ...(query?.sortPendingOrder && {
+          tranjectionId: query?.sortPendingOrder,
+        }),
       };
 
       const result = await orderCollection.find(filter).toArray();
       res.send(result);
     });
 
-    app.get('/confirmOrder', async(req,res) => {
+    app.get("/confirmOrder", async (req, res) => {
       const query = req.query;
-      const find = {orderStatus: 'confirm'};
+      const find = { orderStatus: "confirm" };
       const existConfirmOrder = await orderCollection.find(find).toArray();
-      const result = existConfirmOrder.filter(order =>query.sortConfirmOrder ? order.tranjectionId === query.sortConfirmOrder: order);
-      res.send(result)
+      const result = existConfirmOrder.filter((order) =>
+        query.sortConfirmOrder
+          ? order.tranjectionId === query.sortConfirmOrder
+          : order
+      );
+      res.send(result);
     });
 
-    app.get('/deliveredOrder', async(req,res) => {
+    app.get("/deliveredOrder", async (req, res) => {
       const query = req.query;
-      const find = {orderStatus: 'delivered'};
+      const find = { orderStatus: "delivered" };
       const existDeliveryOrder = await orderCollection.find(find).toArray();
-      const result = existDeliveryOrder.filter(order =>query.sortDeliveredOrder ? order.tranjectionId === query.sortDeliveredOrder : order);
-      res.send(result)
-    })
-
+      const result = existDeliveryOrder.filter((order) =>
+        query.sortDeliveredOrder
+          ? order.tranjectionId === query.sortDeliveredOrder
+          : order
+      );
+      res.send(result);
+    });
 
     // update order status
-    app.put('/order/:id', async(req,res) => {
+    app.put("/order/:id", async (req, res) => {
       const id = req.params.id;
-      const {updatedStatus} = req.body;
-
-      const filter = {_id: new ObjectId(id)}
-     
+      const { updatedStatus,productDetails } = req.body;
+     const productId = productDetails?.flatMap((order) => order.productId);
+     const productQut = productDetails?.flatMap((order) => order.quantity);
+      const filter = { _id: new ObjectId(id) };
+      const filterProduct = productDetails?.map((order) => ({
+        _id: new ObjectId(order.productId),
+        quantity : order.quantity
+      }))
       const updatedDoc = {
         $set: {
-          orderStatus: updatedStatus
-        }
-      }
+          orderStatus: updatedStatus,
+        },
+      };
+       
+      const updateProductStock = await Promise.all(
+        filterProduct.map( async (product) => {
+          const existingProduct = await productsCollection.findOne({_id: product._id});
+          const currentStock = parseInt(existingProduct.stock)
 
-      const result = await orderCollection.updateOne(filter,updatedDoc);
+
+          return{
+            updateOne: {
+              filter: {_id: product._id},
+              update: {$set: {stock: currentStock - product.quantity}}
+            }
+          }
+        }));
+
+        const productUpdate = await productsCollection.bulkWrite(updateProductStock);
+
+      
+      
+      const result = await orderCollection.updateOne(filter, updatedDoc);
       res.send(result);
-    })
+    });
 
     app.post("/order", async (req, res) => {
       const orderInfo = req.body;
@@ -502,13 +545,13 @@ async function run() {
       const queryCart = {
         _id: { $in: orderInfo.cartId.map((id) => new ObjectId(id)) },
       };
-      
 
       const addedProduct = await cartsCollection.find(queryCart).toArray();
-      
-      const user = await usersCollection.findOne({email: orderInfo.cus_email});
-      
-      
+
+      const user = await usersCollection.findOne({
+        email: orderInfo.cus_email,
+      });
+
       const total = addedProduct.reduce(
         (total, product) =>
           total + (product.price - product.discountPrice) * product.quantity,
@@ -518,7 +561,7 @@ async function run() {
       const tran_id = new ObjectId().toString();
 
       const data = {
-        total_amount: total_price,
+        total_amount: parseInt(total_price),
         currency: "BDT",
         tran_id: tran_id, // use unique tran_id for each api call
         success_url: `http://localhost:8000/payment/success/${tran_id}`,
@@ -605,7 +648,6 @@ async function run() {
         };
 
         console.log(result);
-        
 
         if (result.matchedCount > 0) {
           const addedProductDelete = await cartsCollection.deleteMany(
