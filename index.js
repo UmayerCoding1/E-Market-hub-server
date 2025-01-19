@@ -102,7 +102,8 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ipmfa.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+// const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ipmfa.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+const uri = "mongodb://localhost:27017/"
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -675,6 +676,23 @@ async function run() {
       res.send({ count: result });
     });
 
+    app.get('/count-all',async(req,res) => {
+      const productsResult = await productsCollection.estimatedDocumentCount();
+      const ordersResult = await orderCollection.estimatedDocumentCount();
+      const usersResult = await usersCollection.estimatedDocumentCount();
+      const order = await orderCollection.find().toArray();
+      const totalRevenue = order.reduce((totalRevenue, order) => order.totalAmount + totalRevenue,0);
+      
+      res
+      .status(200)
+      .json({
+        products: productsResult,
+        orders: ordersResult,
+        users: usersResult,
+        revenue: totalRevenue,
+      })
+    })
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
@@ -688,5 +706,5 @@ async function run() {
 run().catch(console.dir);
 
 app.listen(port, () => {
-  console.log(`EMarket server running PORT:${port}`);
+  console.log(`EMarket server running PORT:${port}${uri}`);
 });
