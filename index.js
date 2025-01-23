@@ -660,7 +660,9 @@ async function run() {
           );
 
           // update2
-          res.redirect("https://emarket-hub.web.app/my-order");
+          setTimeout(() => {
+            res.redirect("https://emarket-hub.web.app/my-order");
+          },1000)
         }
       });
 
