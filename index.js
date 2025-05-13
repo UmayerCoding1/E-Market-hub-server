@@ -14,10 +14,7 @@ const port = process.env.PORT || 8000;
 
 app.use(
   cors({
-    origin: [
-      "https://emarket-hub.web.app",
-      "http://localhost:5173"
-    ]
+    origin: ["https://emarket-hub.web.app", "http://localhost:5173"],
   })
 );
 app.use(express.json());
@@ -40,7 +37,7 @@ const uploadOnCloudinary = async (localFilePath) => {
       resource_type: "auto",
     });
     // file upload successfully
-    console.log("File upload successfully", response.url);
+    
     return response;
   } catch (error) {
     // remove the locally save temporary file as the upload operation got the failed
@@ -52,9 +49,8 @@ const uploadOnCloudinary = async (localFilePath) => {
 };
 // upload multiple file in Cloudinary
 const uploadMultipleFilesOnCloudinary = async (filePaths) => {
-  if(!filePaths){
-    return console.log('file path is not find', filePaths);
-    
+  if (!filePaths) {
+    throw new Error("File path is not found");
   }
   const uploadPromises = filePaths.map((filePath) =>
     uploadOnCloudinary(filePath)
@@ -79,6 +75,7 @@ app.post("/jwt", (req, res) => {
 // verify token
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
+  
 
   if (!authHeader) {
     return res.status(401).send({ message: '"unauthorized  access' });
@@ -156,14 +153,13 @@ async function run() {
     // image upload
     app.post(
       "/api/image/uploads",
-      upload.array("productImage",2),
+      upload.array("productImage", 2),
       async (req, res) => {
-        console.log(req.files);
-        if(!req.files){
-          return res.status(500).send({message: "File is not found"})
+       
+        if (!req.files) {
+          return res.status(500).send({ message: "File is not found" });
         }
-        
-        
+
         const filePaths = req.files?.map((file) => file.path);
         const uploadedFile = await uploadMultipleFilesOnCloudinary(filePaths);
         res.send({ url: uploadedFile });
@@ -263,16 +259,18 @@ async function run() {
       res.send(result);
     });
 
-    app.post('/daley', async (req,res) => {
+    app.post("/daley", async (req, res) => {
       const daleyData = req.body;
       const daleyCount = await daleyCollection.estimatedDocumentCount();
-      if(daleyCount >= 2){
-        return res.send({message: '2 daley already add. Added by only 2 daley please try to next time'})
+      if (daleyCount >= 2) {
+        return res.send({
+          message:
+            "2 daley already add. Added by only 2 daley please try to next time",
+        });
       }
       const result = await daleyCollection.insertOne(daleyData);
-      res.send(result)
-         
-    })
+      res.send(result);
+    });
 
     // get ads
     app.get("/ads", async (req, res) => {
@@ -322,8 +320,6 @@ async function run() {
       res.send(result);
     });
 
-   
-
     app.put("/product/:id", async (req, res) => {
       const id = req.params.id;
       const {
@@ -354,7 +350,7 @@ async function run() {
 
     app.delete("/product/:id", async (req, res) => {
       const id = req.params.id;
-      const query = {_id: new ObjectId(id)};
+      const query = { _id: new ObjectId(id) };
       const result = await productsCollection.deleteOne(query);
       res.send(result);
     });
@@ -363,16 +359,18 @@ async function run() {
 
     app.get("/cart", verifyToken, async (req, res) => {
       const user = req.query;
-      const decodeEmail = req.decode;
-      // console.log(decodeEmail);
+     
 
       const query = { user_email: user?.email };
       const result = await cartsCollection.find(query).toArray();
+     
       res.send(result);
     });
 
     app.post("/cart", async (req, res) => {
       const product = req.body;
+      
+
       // const {product_name,user_email,quantity} = product;
       const existingItem = await cartsCollection.findOne({
         product_name: product?.product_name,
@@ -384,19 +382,27 @@ async function run() {
           { _id: existingItem._id },
           { $set: { quantity: existingItem.quantity + product.quantity } }
         );
-        console.log("update");
+
         res.send({ message: "card product is update" });
       } else {
         const result = await cartsCollection.insertOne(product);
         res.send(result);
-        console.log("new");
       }
     });
 
-    app.delete("/cart/:id", async (req, res) => {
+    app.delete("/delete-cart/:id", async (req, res) => {
       const id = req.params.id;
+    
+
       const filter = { _id: new ObjectId(id) };
       const result = await cartsCollection.deleteOne(filter);
+      res.send(result);
+    });
+
+    app.delete("/delete-all-cart", verifyToken, async (req, res) => {
+      const { email } = req.query;
+      const query = { user_email: email };
+      const result = await cartsCollection.deleteMany(query);
       res.send(result);
     });
 
@@ -416,6 +422,7 @@ async function run() {
     // address
     app.get("/addresses", verifyToken, async (req, res) => {
       const { email } = req.query;
+      
       const result = await addressesCollection.findOne({ userEmail: email });
       res.send(result);
     });
@@ -426,7 +433,6 @@ async function run() {
         userEmail: address.userEmail,
       });
       if (existingAddress) {
-        console.log("address already exist");
         return res.send({ address: true });
       } else {
         const result = await addressesCollection.insertOne(address);
@@ -437,6 +443,7 @@ async function run() {
     // my list related api
     app.get("/my-list", verifyToken, async (req, res) => {
       const { email } = req.query;
+     
       const result = await myListCollection.find({ email: email }).toArray();
       res.send(result);
     });
@@ -455,6 +462,7 @@ async function run() {
     app.delete("/my-list/:id", async (req, res) => {
       const id = req.params.id;
       console.log(id);
+     
       const query = { _id: new ObjectId(id) };
       const result = await myListCollection.deleteOne(query);
       res.send(result);
@@ -508,45 +516,47 @@ async function run() {
     // update order status
     app.put("/order/:id", async (req, res) => {
       const id = req.params.id;
-      const { updatedStatus,productDetails } = req.body;
-     const productId = productDetails?.flatMap((order) => order.productId);
-     const productQut = productDetails?.flatMap((order) => order.quantity);
+      const { updatedStatus, productDetails } = req.body;
+      const productId = productDetails?.flatMap((order) => order.productId);
+      const productQut = productDetails?.flatMap((order) => order.quantity);
       const filter = { _id: new ObjectId(id) };
       const filterProduct = productDetails?.map((order) => ({
         _id: new ObjectId(order.productId),
-        quantity : order.quantity
-      }))
+        quantity: order.quantity,
+      }));
       const updatedDoc = {
         $set: {
           orderStatus: updatedStatus,
         },
       };
-       
+
       const updateProductStock = await Promise.all(
-        filterProduct.map( async (product) => {
-          const existingProduct = await productsCollection.findOne({_id: product._id});
-          const currentStock = parseInt(existingProduct.stock)
+        filterProduct.map(async (product) => {
+          const existingProduct = await productsCollection.findOne({
+            _id: product._id,
+          });
+          const currentStock = parseInt(existingProduct.stock);
 
-
-          return{
+          return {
             updateOne: {
-              filter: {_id: product._id},
-              update: {$set: {stock: currentStock - product.quantity}}
-            }
-          }
-        }));
+              filter: { _id: product._id },
+              update: { $set: { stock: currentStock - product.quantity } },
+            },
+          };
+        })
+      );
 
-        const productUpdate = await productsCollection.bulkWrite(updateProductStock);
+      const productUpdate = await productsCollection.bulkWrite(
+        updateProductStock
+      );
 
-      
-      
       const result = await orderCollection.updateOne(filter, updatedDoc);
       res.send(result);
     });
 
     app.post("/order", async (req, res) => {
       const orderInfo = req.body;
-      // console.log(...orderInfo.cartId);
+    
       const queryCart = {
         _id: { $in: orderInfo.cartId.map((id) => new ObjectId(id)) },
       };
@@ -556,6 +566,10 @@ async function run() {
       const user = await usersCollection.findOne({
         email: orderInfo.cus_email,
       });
+
+      console.log(orderInfo);
+    
+      
 
       const total = addedProduct.reduce(
         (total, product) =>
@@ -569,10 +583,10 @@ async function run() {
         total_amount: parseInt(total_price),
         currency: "BDT",
         tran_id: tran_id, // use unique tran_id for each api call
-        // success_url: `http://localhost:8000/payment/success/${tran_id}`,
-        // fail_url: `http://localhost:8000/payment/fail/${tran_id}`,
-        success_url: `https://e-market-hub-server.onrender.com/payment/success/${tran_id}`,
-        fail_url: `https://e-market-hub-server.onrender.com/payment/fail/${tran_id}`,
+        success_url: `http://localhost:8000/payment/success/${tran_id}`,
+        fail_url: `http://localhost:8000/payment/fail/${tran_id}`,
+        // success_url: `https://e-market-hub-server.onrender.com/payment/success/${tran_id}`,
+        // fail_url: `https://e-market-hub-server.onrender.com/payment/fail/${tran_id}`,
         cancel_url: "http://localhost:3030/cancel",
         ipn_url: "http://localhost:3030/ipn",
         shipping_method: "Courier",
@@ -598,10 +612,19 @@ async function run() {
         ship_country: "Bangladesh",
       };
 
+      
+
       const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live);
+      
+      
       sslcz.init(data).then((apiResponse) => {
+        
         // Redirect the user to payment gateway
         let GatewayPageURL = apiResponse.GatewayPageURL;
+        if (!GatewayPageURL) {
+         
+          return res.status(500).send({ error: 'Payment gateway URL not found' });
+        }
         res.send({ url: GatewayPageURL });
         const finalOrder = {
           paidStatus: false,
@@ -630,11 +653,11 @@ async function run() {
         };
         const result = orderCollection.insertOne(finalOrder);
 
-        console.log("Redirecting to: ", GatewayPageURL);
+
       });
 
       app.post("/payment/success/:tranId", async (req, res) => {
-        console.log(req.params.tranId);
+    
         const result = await orderCollection.updateOne(
           { tranjectionId: req.params.tranId },
           {
@@ -652,7 +675,7 @@ async function run() {
           },
         };
 
-        console.log(result);
+
 
         if (result.matchedCount > 0) {
           const addedProductDelete = await cartsCollection.deleteMany(
@@ -661,8 +684,9 @@ async function run() {
 
           // update2
           setTimeout(() => {
-            res.redirect("https://emarket-hub.web.app/my-order");
-          },1000)
+            // res.redirect("https://emarket-hub.web.app/my-order");
+            res.redirect("http://localhost:5173/my-order");
+          }, 1000);
         }
       });
 
@@ -672,7 +696,8 @@ async function run() {
         });
         // update1
         if (result.deletedCount) {
-          res.redirect("https://emarket-hub.web.app/my-account");
+          // res.redirect("https://emarket-hub.web.app/my-account");
+          res.redirect("http://localhost:5173/my-account");
         }
       });
     });
@@ -683,22 +708,23 @@ async function run() {
       res.send({ count: result });
     });
 
-    app.get('/count-all',async(req,res) => {
+    app.get("/count-all", async (req, res) => {
       const productsResult = await productsCollection.estimatedDocumentCount();
       const ordersResult = await orderCollection.estimatedDocumentCount();
       const usersResult = await usersCollection.estimatedDocumentCount();
       const order = await orderCollection.find().toArray();
-      const totalRevenue = order.reduce((totalRevenue, order) => order.totalAmount + totalRevenue,0);
-      
-      res
-      .status(200)
-      .json({
+      const totalRevenue = order.reduce(
+        (totalRevenue, order) => order.totalAmount + totalRevenue,
+        0
+      );
+
+      res.status(200).json({
         products: productsResult,
         orders: ordersResult,
         users: usersResult,
         revenue: totalRevenue,
-      })
-    })
+      });
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
