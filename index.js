@@ -461,8 +461,7 @@ async function run() {
 
     app.delete("/my-list/:id", async (req, res) => {
       const id = req.params.id;
-      console.log(id);
-     
+
       const query = { _id: new ObjectId(id) };
       const result = await myListCollection.deleteOne(query);
       res.send(result);
@@ -567,7 +566,7 @@ async function run() {
         email: orderInfo.cus_email,
       });
 
-      console.log(orderInfo);
+
     
       
 
@@ -583,10 +582,8 @@ async function run() {
         total_amount: parseInt(total_price),
         currency: "BDT",
         tran_id: tran_id, // use unique tran_id for each api call
-        success_url: `http://localhost:8000/payment/success/${tran_id}`,
-        fail_url: `http://localhost:8000/payment/fail/${tran_id}`,
-        // success_url: `https://e-market-hub-server.onrender.com/payment/success/${tran_id}`,
-        // fail_url: `https://e-market-hub-server.onrender.com/payment/fail/${tran_id}`,
+        success_url: `https://e-market-hub-server.onrender.com/payment/success/${tran_id}`,
+        fail_url: `https://e-market-hub-server.onrender.com/payment/fail/${tran_id}`,
         cancel_url: "http://localhost:3030/cancel",
         ipn_url: "http://localhost:3030/ipn",
         shipping_method: "Courier",
@@ -684,8 +681,8 @@ async function run() {
 
           // update2
           setTimeout(() => {
-            // res.redirect("https://emarket-hub.web.app/my-order");
-            res.redirect("http://localhost:5173/my-order");
+            res.redirect("https://emarket-hub.web.app/my-order");
+           
           }, 1000);
         }
       });
